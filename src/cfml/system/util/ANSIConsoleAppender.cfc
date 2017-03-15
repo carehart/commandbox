@@ -27,11 +27,14 @@ component extends="wirebox.system.logging.AbstractAppender" {
 		super.init(argumentCollection=arguments);
 		// The log levels enum as a public property
 		variables.logLevels = createObject("component","wirebox.system.logging.LogLevels");
+		
 		return this;
 	}
 	
 	function logMessage( required logEvent ) {
 
+		var shell = application.wireBox.getInstance( 'shell' );
+		
 		var loge = arguments.logEvent;
 		var entry = "";
 		
@@ -47,31 +50,31 @@ component extends="wirebox.system.logging.AbstractAppender" {
 		// Log message
 		switch( loge.getseverity() ) {
 		    case logLevels.FATAL: case logLevels.ERROR:
-				print().boldRedLine( entry ).toConsole();
+				shell.printString( print().boldRedLine( entry ) );
 		         break;
 		    case logLevels.WARN:
-				print().yellowLine( entry ).toConsole();
+				shell.printString( print().yellowLine( entry ) );
 		         break;
 		    case logLevels.INFO:
-				print().greenLine( entry ).toConsole();
+				shell.printString( print().greenLine( entry ) );
 		         break;
 		    default: 
-				print().line( entry ).toConsole();
+				shell.printString( print().line( entry ) );
 		}
 
 		// Log Extra Info as a string
 		var extraInfo = loge.getExtraInfoAsString();
 		if( len( extraInfo ) ){
-			print().line( loge.getExtraInfo().toString() ).toConsole();	
+			shell.printString( print().line( loge.getExtraInfo().toString() ) );	
 		}
 	}
 	
 	function print() {
-		if( !structKeyExists( variables, 'printBuffer' ) ){
+		if( !structKeyExists( variables, 'oPrint' ) ){
 			// Appenders are created by WireBox, so we can't DI.
-			variables.printBuffer = application.wireBox.getInstance( 'PrintBuffer' );
+			variables.oPrint = application.wireBox.getInstance( 'Print' );
 		} 
-		return variables.printBuffer;
+		return variables.oPrint;
 	}
 	
 }

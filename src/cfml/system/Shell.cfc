@@ -210,7 +210,7 @@ component accessors="true" singleton {
 	 * @return the response from the user
  	 **/
 	string function ask( message, string mask='', string defaultResponse='' ) {
-		
+		sleep( 300 );
 		try {
 			// read reponse while masking input
 			var input = variables.reader.readLine(
@@ -239,6 +239,7 @@ component accessors="true" singleton {
 	 * @return the response from the user as a boolean value
  	 **/
 	boolean function confirm( required message ){
+		sleep( 300 );
 		var answer = ask( "#message# : " );
 		if( isNull( answer ) ){ return false; }
 		if( trim( answer ) == "y" || ( isBoolean( answer ) && answer ) ) {
@@ -527,7 +528,7 @@ component accessors="true" singleton {
 			// If the command output text that didn't end with a line break one, add one
 			var lastChar = mid( result, len( result ), 1 );
 			if( ! ( lastChar == chr( 10 ) || lastChar == chr( 13 ) ) ) {
-				variables.reader.println();
+			//	variables.reader.println();
 			}
 		} else {
 			variables.reader.println();

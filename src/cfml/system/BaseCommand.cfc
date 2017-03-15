@@ -129,7 +129,7 @@ component accessors="true" singleton {
 		hasErrored = true;
 		if( arguments.clearPrintBuffer ) {
 			// Wipe 
-			print.clear();
+			//print.clear();
 		} else {
 			// Distance ourselves from whatever other output the command may have given so far.
 			print.line();

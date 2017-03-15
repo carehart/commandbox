@@ -46,6 +46,10 @@ component{
 	function run(
 		required command
 	){
+		// This isn't declared as a "real" argument since a user can never pass more than one parameter to this command.
+		// The CommandService will set this to false if this command is being run as an expression, or being piped somewhere.
+		// Otherwise, we'll just let this command bind itself to the main Java process' IO.
+		var doInteractive = arguments.interactive ?: true;
 		
 		// Prep the command to run in the OS-specific shell
 		if( fileSystemUtil.isWindows() ) {

@@ -106,7 +106,7 @@ component aliases="snake" {
 					while( variables.snakeRun ) {
 						// Move and re-draw if not in an invalid state
 						if( !variables.collision ) {
-							variables.collision = !move( getNextDirection() );			
+							variables.collision = !move( getNextDirection() );
 							printGame();
 						}
 						// Decrease this to speed up the game
@@ -160,7 +160,6 @@ component aliases="snake" {
 	************************************************************************************* */
 
 	private function printGame() {
-		
 			// Reset cursor to upper left hand corner
 			print.text( chr( 27 ) & '[H' ).toConsole();
 		

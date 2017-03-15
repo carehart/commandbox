@@ -18,25 +18,33 @@ component accessors="true" extends="Print"{
 	* Result buffer
 	*/
 	property name="result" default="";
+	property name="pos";
 	
-	function init(){
+	function init(){		
 		return this;
 	}
 	
 	// Force a flush
 	function toConsole(){
-		variables.shell.printString( getResult() );
-		clear();
+		//variables.shell.printString( getResult() );
+		//clear();
 	}
 	
 	// Reset the result
 	function clear(){
+		//getPOS().flush();
+		//getPOS().close();
+		//init();
 		variables.result = '';		
 	}
 		
 	// Proxy through any methods to the actual print helper
 	function onMissingMethod( missingMethodName, missingMethodArguments ){
-		variables.result &= super.onMissingMethod( arguments.missingMethodName, arguments.missingMethodArguments );
+		var newString = super.onMissingMethod( arguments.missingMethodName, arguments.missingMethodArguments );
+		thread.pipedOutputStream.write( newString.getBytes() );
+		thread.pipedOutputStream.flush();
+		
+		variables.result &= newString;
 		return this;
 	}
 	

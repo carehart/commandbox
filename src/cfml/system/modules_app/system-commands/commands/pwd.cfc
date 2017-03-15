@@ -9,7 +9,7 @@
 component {
 
 	function run()  {
-		return getCWD();
+		print.line( getCWD() );
 	}
 
 }

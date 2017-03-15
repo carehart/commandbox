@@ -227,11 +227,16 @@ component accessors="true" singleton {
 
 			// If this is not the first command in the chain,
 			// set its first parameter with the output from the last command
+			
+					//	systemOutput( previousCommandSeparator, true );
+					//	systemOutput( 'result: ' & (result ?: 'nada'), true );
 			if( previousCommandSeparator == '|' && structKeyExists( local, 'result' ) ){
+					//	systemOutput( 'result2: ' & result, true );
+						local.result = toString( local.result );
 				// Clean off trailing any CR to help with piping one-liner outputs as inputs to another command
-				if( result.endsWith( chr( 10 ) ) && len( result ) > 1 ){
+				/*if( result.endsWith( chr( 10 ) ) && len( result ) > 1 ){
 					result = left( result, len( result ) - 1 );
-				}
+				}*/
 				// If we're using named parameters and this command has at least one param defined
 				if( structCount( parameterInfo.namedParameters ) ){
 					if( commandInfo.commandString == 'cfml' ) {
@@ -276,13 +281,13 @@ component accessors="true" singleton {
 
 			// If there are currently executing commands, flush out the print buffer from the last one
 			// This will prevent the output from showing up out of order if one command nests a call to another.
-			if( instance.callStack.len() ){
+	/*		if( instance.callStack.len() ){
 				// Print anything in the buffer
 				shell.printString( instance.callStack[1].commandReference.CFC.getResult() );
 				// And reset it now that it's been printed.
 				// This command can add more to the buffer once it's executing again.
 				instance.callStack[1].commandReference.CFC.reset();
-			}
+			}*/
 
 			// Add command to the top of the stack
 			instance.callStack.prepend( commandInfo );
@@ -291,20 +296,46 @@ component accessors="true" singleton {
 
 			// Successful command execution resets exit code to 0.  Set this prior to running the command since the command
 			// may explicitly set the exit code to 1 but not call the error() method.
-			shell.setExitCode( 0 );
+			shell.setExitCode( 0 );			
 			
-			// Run the command
-			try {
-				var result = commandInfo.commandReference.CFC.run( argumentCollection = parameterInfo.namedParameters );
-				lastCommandErrored = commandInfo.commandReference.CFC.hasError();
-			} catch( any e ){
-				lastCommandErrored = true;
-
-				// Dump out anything the command had printed so far
-				var result = commandInfo.commandReference.CFC.getResult();
-				if( len( result ) ){
-					shell.printString( result & cr );
+			// Prepare the pipe to receive the command's output
+			// Create a runnable to contain the command execution
+			var commandInvocation = wirebox.getInstance( 'commandbox.system.util.CommandInvocation' );
+			
+			// Run our command aync.  This will return immediately with an input stream we can 
+			// read for the output of the command.  The invocation object can be used to get error status.
+			var PIS = commandInvocation.run( commandInfo.commandReference.CFC, parameterInfo.namedParameters );
+			
+			if( arrayLen( commandChain ) > i && listFindNoCase( '|', commandChain[ i+1 ].originalLine ) ) {
+				
+				//		systemOutput( '1', true );
+				local.result = PIS;
+			} else {
+				//		systemOutput( '2', true );
+				local.result = '';
+				//systemOutput( 'post thread started', true );
+				var arrays = createObject( 'java', 'java.util.Arrays' );
+				// Block until the command closes its stream meaning it either completed or errored
+				try{				
+					var byteArray = getByteArray( 1024 );
+						//systemOutput( 'reading PIS', true );
+					var char = PIS.read( byteArray );
+					while( char != -1 ){
+						shell.printString( toString( arrays.copyOfRange( byteArray, 0, char ) ) );
+						char = PIS.read( byteArray );
+					}
+				} catch( any var e ) {
+					logger.error( e.message & ' ' & e.detail, e.stacktrace );
+					systemOutput( e.message, true );
+				} finally {
+					PIS.close();
 				}
+			}
+			
+			if( commandInvocation.getErrored() ) {
+				
+				var e = commandInvocation.getException();
+				
 				// This is a little hacky,  but basically if there are more commands in the chain that need to run,
 				// just print an exception and move on.  Otherwise, throw so we can unwrap the call stack all the way
 				// back up.  That is neccessary for command expressions that fail like "echo `cat noExists.txt`"
@@ -321,29 +352,35 @@ component accessors="true" singleton {
 				} else {
 					// Clean up a bit
 					instance.callStack.clear();
-					rethrow;
+				//	shell.printError( e );
+					throw( e );
 				}
-			}
+			}		
 
 			// Remove it from the stack
 			instance.callStack.deleteAt( 1 );
 
-			// If the command didn't return anything, grab its print buffer value
-			if( isNull( result ) ){
-				result = commandInfo.commandReference.CFC.getResult();
-			}
 			var interceptData = {
 				commandInfo=commandInfo,
-				parameterInfo=parameterInfo,
-				result=result
+				parameterInfo=parameterInfo//,
+				//result=result
 			};
 			interceptorService.announceInterception( 'postCommand', interceptData );
-			result = interceptData.result;
+		//	result = interceptData.result;
 
 		} // End loop over command chain
-		return result;
+		return '';//result;
 
 	}
+
+	// Creates a Java byte array of a given size
+	private binary function getByteArray( required numeric size ) {
+		var emptyByteArray = createObject("java", "java.io.ByteArrayOutputStream").init().toByteArray();
+		var byteClass = emptyByteArray.getClass().getComponentType();
+		var byteArray = createObject("java","java.lang.reflect.Array").newInstance(byteClass, arguments.size);
+		return byteArray;
+	} 
+
 
 	/**
 	* Generate a smart list of possible commands that the user meant to type
