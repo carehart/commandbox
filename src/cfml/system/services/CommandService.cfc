@@ -118,7 +118,7 @@ component accessors="true" singleton {
 	 * run a command line
 	 * @line.hint line to run
  	 **/
-	function runCommandline( required string line ){
+	function runCommandline( required string line, boolean returnOutput=false ){
 
 		if( left( arguments.line, 4 ) == 'box ' && len( arguments.line ) > 4 ) {
 			consoleLogger.warn( "Removing extra text [box ] from start of command. You don't need that here." );
@@ -128,7 +128,7 @@ component accessors="true" singleton {
 		// Resolve the command they are wanting to run
 		var commandChain = resolveCommand( line );
 
-		return runCommand( commandChain, line );
+		return runCommand( commandChain=commandChain, line=line, returnOutput=returnOutput );
 	}
 
 	/**
@@ -136,17 +136,17 @@ component accessors="true" singleton {
 	 * @tokens.hint tokens to run
 	 * @piped.hint Data to pipe in to the first command
  	 **/
-	function runCommandTokens( required array tokens, string piped ){
+	function runCommandTokens( required array tokens, string piped, boolean returnOutput=false ){
 
 		// Resolve the command they are wanting to run
 		var commandChain = resolveCommandTokens( tokens );
 
 		// If there was piped input
 		if( structKeyExists( arguments, 'piped' ) ) {
-			return runCommand( commandChain, tokens.toList( ' ' ), arguments.piped );
+			return runCommand( commandChain, tokens.toList( ' ' ), arguments.piped, returnOutput );
 		}
 
-		return runCommand( commandChain, tokens.toList( ' ' ) );
+		return runCommand( commandChain=commandChain, line=tokens.toList( ' ' ), returnOutput=returnOutput );
 
 	}
 
@@ -154,7 +154,11 @@ component accessors="true" singleton {
 	 * run a command
 	 * @commandChain.hint the chain of commands to run
  	 **/
-	function runCommand( required array commandChain, required string line, string piped ){
+	function runCommand(
+		required array commandChain,
+		required string line,
+		string piped,
+		boolean returnOutput=false ){
 
 		// If nothing is returned, something bad happened (like an error instatiating the CFC)
 		if( !commandChain.len() ){
@@ -310,6 +314,8 @@ component accessors="true" singleton {
 				
 				//		systemOutput( '1', true );
 				local.result = PIS;
+			} else if( returnOutput ){
+				return toString( PIS );
 			} else {
 				//		systemOutput( '2', true );
 				local.result = '';
@@ -438,7 +444,7 @@ component accessors="true" singleton {
 				// Extract them
 				var expression = mid( paramValue, search.pos[1], search.len[1] );
 				// Evaluate them
-				var result = runCommandline( mid( expression, 15, len( expression )-28 ) ) ?: '';
+				var result = runCommandline( mid( expression, 15, len( expression )-28 ), true ) ?: '';
 
 				// Clean off trailing any CR to help with piping one-liner outputs as inputs to another command
 				if( result.endsWith( chr( 10 ) ) && len( result ) > 1 ){
