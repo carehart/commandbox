@@ -1,3 +1,5 @@
+<cfset start = getTickCount()>
+<cfset systemoutput('starting: ' & start , 1 )>
 <cfsilent><cftry>
 <!---
 *********************************************************************************
@@ -167,8 +169,6 @@ Type "help" for help, or "help [command]" to be more specific.#chr( 27 )#[0m
 
 	interceptorService.announceInterception( 'onCLIExit' );
 
-    system.runFinalization();
-    system.gc();
 </cfscript>
 
 	<cfcatch type="any">
@@ -223,3 +223,4 @@ Type "help" for help, or "help [command]" to be more specific.#chr( 27 )#[0m
 	</cfcatch>
 </cftry>
 </cfsilent>
+<cfset systemoutput('ending: ' & getTickCount()-start , 1 )>

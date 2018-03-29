@@ -57,9 +57,9 @@ component accessors="true" singleton {
 	}
 
 	// Get the result.  This will be called if the run() method doesn't return anything
-	function getResult() {
+	/*function getResult() {
 		return print.getResult();
-	}
+	}*/
 
 	// Returns the current working directory of the shell
 	function getCWD() {

@@ -316,9 +316,14 @@ component accessors="true" singleton {
 
 			// Run the command
 			try {
+				// I will be fed a stream of bytes as the command executes
+				var pipedOutputStream = commandInfo.commandReference.CFC.getPrint().getPipedOutputStream()
+				// I will accept the stream of bytes from the command as it processes
+				var pipedInputStream = createObject( 'java', 'java.io.PipedInputStream' ).init( pipedOutputStream, 50000 );
 				var result = commandInfo.commandReference.CFC.run( argumentCollection = parameterInfo.namedParameters );
 				lastCommandErrored = commandInfo.commandReference.CFC.hasError();
 			} catch( any e ){
+				rethrow;
 				lastCommandErrored = true;
 
 				// Dump out anything the command had printed so far
@@ -343,24 +348,36 @@ component accessors="true" singleton {
 					rethrow;
 				}
 			} finally {
+				pipedOutputStream.close();
 				// Remove it from the stack
 				instance.callStack.deleteAt( 1 );
 			}
 
 			// If the command didn't return anything, grab its print buffer value
 			if( isNull( result ) ){
-				result = commandInfo.commandReference.CFC.getResult();
+				
+				// I convert the byte array in the piped input stream to a character array
+				var inputStreamReader = createObject( 'java', 'java.io.InputStreamReader' ).init( pipedInputStream );
+				
+				while( ( var char = inputStreamReader.read() ) != -1 ) {
+		    		shell.getReader().getTerminal().writer().write( char );
+				}
+				pipedInputStream.close();
+				inputStreamReader.close();
+		    	shell.getReader().getTerminal().writer().flush();
+				
+				//result = commandInfo.commandReference.CFC.getResult();
 			}
 			var interceptData = {
 				commandInfo=commandInfo,
-				parameterInfo=parameterInfo,
-				result=result
+				parameterInfo=parameterInfo//,
+				//result=result
 			};
 			interceptorService.announceInterception( 'postCommand', interceptData );
-			result = interceptData.result;
+			//result = interceptData.result;
 
 		} // End loop over command chain
-		return result;
+		//return result;
 
 	}
 
@@ -1058,6 +1075,15 @@ component accessors="true" singleton {
 			}
 		} );
 
+	}
+
+
+	// Creates a Java byte array of a given size
+	private binary function getByteArray( required numeric size ) {
+		var emptyByteArray = createObject("java", "java.io.ByteArrayOutputStream").init().toByteArray();
+		var byteClass = emptyByteArray.getClass().getComponentType();
+		var byteArray = createObject("java","java.lang.reflect.Array").newInstance(byteClass, arguments.size);
+		return byteArray;
 	}
 
 }

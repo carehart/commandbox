@@ -17,26 +17,35 @@ component accessors="true" extends="Print"{
 	/**
 	* Result buffer
 	*/
-	property name="result" default="";
+	property name="pipedOutputStream";
+	property name="outputStreamWriter";
 
 	function init(){
+		// I accept raw bytes in
+		pipedOutputStream = createObject( 'java', 'java.io.PipedOutputStream' ).init();
+		// I accept character strings and feed their raw bytes to the pipedOutputStream
+		outputStreamWriter = createObject( 'java', 'java.io.OutputStreamWriter' ).init( pipedOutputStream );
+		
 		return this;
 	}
 
 	// Force a flush
 	function toConsole(){
-		variables.shell.printString( getResult() );
-		clear();
+		//variables.shell.printString( getResult() );
+		//clear();
 	}
 
 	// Reset the result
 	function clear(){
-		variables.result = '';
+		init();
+		//variables.result = '';
 	}
 
 	// Proxy through any methods to the actual print helper
 	function onMissingMethod( missingMethodName, missingMethodArguments ){
-		variables.result &= super.onMissingMethod( arguments.missingMethodName, arguments.missingMethodArguments );
+		var result = super.onMissingMethod( arguments.missingMethodName, arguments.missingMethodArguments );
+		outputStreamWriter.write( result, 0, result.len() );
+		outputStreamWriter.flush();
 		return this;
 	}
 
